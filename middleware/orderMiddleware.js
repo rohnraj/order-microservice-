@@ -11,7 +11,7 @@ const verifyUser = (req, res, next) => {
         if (err) {
             return res.status(401).json({ message: 'Unauthorized: Invalid token' });
         }
-        req.user = decoded; // Attach user info to request object
+        req.user = decoded; 
         next();
     });
 }
