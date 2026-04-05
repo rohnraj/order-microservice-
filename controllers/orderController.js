@@ -7,11 +7,15 @@ import {
 import jwt from 'jsonwebtoken';
 import dotenv from 'dotenv';
 import amqp from 'amqplib';
+import { createClient } from 'redis';
 
 dotenv.config();
 
 const connection = await amqp.connect('amqp://localhost');
 const channel = await connection.createChannel();
+const client = createClient();
+client.on('error', err => console.log('Redis Client Error', err));
+await client.connect();
 
 const createOrderController = async (req, res) => {
     try {
@@ -70,7 +74,13 @@ const createOrderController = async (req, res) => {
 
 const getAllOrdersController = async (req, res) => {
     try {
+        const cachedData = await client.get('orders');
+
+        if (cachedData) {
+            return res.status(200).json({ orders: JSON.parse(cachedData) });
+        }
         const data = await getAllOrder();
+        await client.set('orders', JSON.stringify(data), { EX: 3600 }); // Set expiration time to 1 hour
         res.status(200).json({ orders: data });
     } catch (error) {
         console.error('Error fetching orders:', error);
